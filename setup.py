@@ -22,8 +22,9 @@ setup(
     package_data={'viaastatus': ['server/static/*']},
     include_package_data=True,
     install_requires=[
-       'Flask>=1.0.2',
-       'uWSGI>=2.0.18',
+        'Flask>=1.0.2',
+        'uWSGI>=2.0.18',
+        'requests>=2.18.4',
     ],
     extras_require={
         'test': [

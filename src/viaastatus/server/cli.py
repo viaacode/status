@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from . import wsgi
+from viaastatus.server import wsgi
 
 
 def argparser():
