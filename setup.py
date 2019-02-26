@@ -32,7 +32,6 @@ setup(
     include_package_data=True,
     install_requires=[
        'Flask>=1.0.2',
-       'jsonrpcserver>=4.0.1',
        'uWSGI>=2.0.18',
     ],
     extras_require={
@@ -40,10 +39,5 @@ setup(
             "pytest>=4.2.0"
         ]
     },
-    platforms='any',
-    entry_points={
-        'console_scripts': [
-#            "%s=%s.cli:main" % (__name__, __name__)
-        ],
-    }
+    platforms='any'
 )

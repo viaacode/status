@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from .wsgi import create_app
+from . import wsgi
 
 
 def argparser():
@@ -14,15 +14,12 @@ def argparser():
                         help='hostname or ip to serve api')
     parser.add_argument('--port', type=int, default=8080,
                         help='port used by the server')
-    parser.add_argument('--entrypoint', default='/',
-                        help='the api address')
     return parser
 
 
 def main():
     args = argparser().parse_args()
-    app = create_app(args.entrypoint)
-    app.run(host=args.host, port=args.port, debug=args.debug)
+    wsgi.create_app().run(**args)
 
 
 if __name__ == '__main__':
