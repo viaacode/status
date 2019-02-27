@@ -14,4 +14,4 @@ USER viaauser
 
 EXPOSE 8080
 
-ENTRYPOINT ["uwsgi", "--http", ":8080", "--wsgi-file", "src/server/wsgi.py", "--callable", "application", "--processes", "4", "--threads", "2", "--stats", ":9191" ]
+ENTRYPOINT ["uwsgi", "--http", ":8080", "--wsgi-file", "src/viaastatus/server/wsgi.py", "--callable", "application", "--processes", "4", "--threads", "2", "--stats", ":9191" ]
