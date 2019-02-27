@@ -3,8 +3,3 @@ username=prtgadmin
 password=my_super_secret_password
 host=https://prtg.example.com
 
-[sensors]
-site1=1
-site2=4
-site3=10
-
