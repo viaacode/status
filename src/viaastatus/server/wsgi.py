@@ -113,7 +113,7 @@ def create_app():
     def _():
         return 'IT WORKS!'
 
-    @app.route('/sensors.<type_>')
+    @app.route('/sensors.<checksum>.<type_>')
     @checksummed
     def sensors(type_):
         return getattr(Responses, type_)(list(get_sensors(prtg).keys()))
