@@ -3,3 +3,10 @@ username=prtgadmin
 password=my_super_secret_password
 host=https://prtg.example.com
 
+[login]
+username=someusername
+password=somepass
+
+[app]
+secret_key=SOMESECRETKEY
+salt=SOMESALT
