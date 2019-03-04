@@ -250,5 +250,10 @@ if __name__ == '__main__':
                         help='port used by the server')
 
     args = parser.parse_args()
+
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
+        logger.setLevel(logging.DEBUG)
+
     application.run(host=args.host, port=args.port, debug=args.debug)
 
