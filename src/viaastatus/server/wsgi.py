@@ -12,6 +12,7 @@ from hashlib import sha256
 from functools import wraps
 import argparse
 import itertools
+from collections import OrderedDict
 
 log_level = logging._nameToLevel[environ.get('VERBOSITY', 'debug').upper()]
 logging.basicConfig(level=log_level)
@@ -151,27 +152,28 @@ def create_app():
                  if rule.is_leaf
                  and rule.endpoint != 'static'
                  and not rule.endpoint.startswith('_')]
-        methods = []
+        method_types = {}
         for i in range(len(rules)):
             rule = rules[i]
             rules[i] = rules[i].__dict__
-            args = {}
+            kargs = [argname for argname in reversed(list(rule.arguments)) if hasattr(Choices, argname)]
+            vargs = [getattr(Choices, argname)() for argname in kargs]
 
-            for argname in rule.arguments:
-                if not hasattr(Choices, argname):
-                    logger.warning('No possible values for %s', argname)
-                    continue
-                args[argname] = getattr(Choices, argname)()
-
-            for params in itertools.product(*args.values()):
-                params = dict(zip(args.keys(), params))
+            methods = []
+            for params in itertools.product(*vargs):
+                params = dict(zip(kargs, params))
                 url = url_for(rule.endpoint, **params)
                 view_func = app.view_functions[rule.endpoint]
                 if hasattr(view_func, '_secured_by_token'):
                     url += '?token=%s' % (view_func._secured_by_token(**params))
-                methods.append(url)
+                methods.append({
+                    "name": rule.endpoint,
+                    "params": params,
+                    "url": url,
+                })
+            method_types[rule.endpoint] = methods
 
-        context['methods'] = methods
+        context['method_types'] = method_types
         return render_template('main.html', **context)
 
     @app.route('/', methods=['POST'])

@@ -1,11 +1,31 @@
 {% extends "layout.html" %}
+{% block style %}
+  ul.urls li img {
+    height: 1em;
+  }
+{% endblock %}
 {% block content %}
   <section>
     <h3>Available urls</h3>
-    <ul>
-      {% for method in methods %}
-      <li><a href="{{ method }}">{{ method }}</a></li>
+      {% for method_type, methods in method_types.items() %}
+        <h4>{{ method_type.rstrip('_') }}</h4>
+        <ul class="urls">
+        {% for method in methods %}
+        <li>
+          {% for k, v in method.params.items() %}
+          <span class="chip">
+            <span class="label label-secondary">{{ k.rstrip('_') }}</span>
+            {{ v }}
+          </span>
+          {% endfor %}
+          <a href="{{ method.url }}">{{ method.url }}</a>
+
+          {% if method.params.type_=="png" %}
+            <img src="{{ method.url }}" alt="{{ method.url }}">
+          {% endif %}
+        </li>
+        {% endfor %}
+        </ul>
       {% endfor %}
-    </ul>
   </section>
 {% endblock %}
