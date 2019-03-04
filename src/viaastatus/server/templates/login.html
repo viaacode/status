@@ -1,0 +1,135 @@
+<style>
+* {
+  box-sizing: border-box;
+}
+
+*:focus {
+  outline: none;
+}
+body {
+  font-family: Arial;
+  background-color: #3498DB;
+  padding: 10px;
+}
+.login {
+  margin: 20px auto;
+  width: 300px;
+}
+.login-screen {
+  background-color: #FFF;
+  padding: 20px;
+  border-radius: 5px
+}
+
+
+main {
+  margin: 20px auto;
+  width: 90vw;
+}
+
+main > section {
+  background-color: #FFF;
+  padding: 20px;
+  border-radius: 5px
+}
+
+h1 {
+  text-align: center;
+  color: #777;
+  display: block;
+}
+
+.login-form {
+  text-align: center;
+}
+.control-group {
+  margin-bottom: 10px;
+}
+
+input {
+  text-align: center;
+  background-color: #ECF0F1;
+  border: 2px solid transparent;
+  border-radius: 3px;
+  font-size: 16px;
+  font-weight: 200;
+  padding: 10px 0;
+  width: 250px;
+  transition: border .5s;
+}
+
+input:focus {
+  border: 2px solid #3498DB;
+  box-shadow: none;
+}
+
+.btn {
+  border: 2px solid transparent;
+  background: #3498DB;
+  color: #ffffff;
+  font-size: 16px;
+  line-height: 25px;
+  padding: 10px 0;
+  text-decoration: none;
+  text-shadow: none;
+  border-radius: 3px;
+  box-shadow: none;
+  transition: 0.25s;
+  display: block;
+  width: 250px;
+  margin: 0 auto;
+}
+
+.btn:hover {
+  background-color: #2980B9;
+}
+
+.login-link {
+  font-size: 12px;
+  color: #444;
+  display: block;
+  margin-top: 12px;
+}
+</style>
+
+{% block body %}
+
+{% with messages = get_flashed_messages() %}
+   {% if messages %}
+      {% for message in messages %}
+         {{ message }}
+      {% endfor %}
+   {% endif %}
+{% endwith %}
+
+  {% if session['authenticated'] %}
+  <main>
+    <section>
+      <h3>Available urls</h3>
+      <ul>
+        {% for method in methods %}
+        <li><a href="{{ method }}">{{ method }}</a></li>
+        {% endfor %}
+      </ul>
+    </section>
+  </main>
+  {% else %}
+    <form action="/" method="POST">
+      <div class="login">
+        <div class="login-screen">
+          <h1>Login</h1>
+          <div class="login-form">
+            <div class="control-group">
+              <input type="text" class="login-field" value="" placeholder="username" name="username">
+              <label class="login-field-icon fui-user" for="login-name"></label></div>
+            <div class="control-group">
+              <input type="password" class="login-field" value="" placeholder="password" name="password">
+              <label class="login-field-icon fui-lock" for="login-pass"></label></div>
+            <input type="submit" value="Log in" class="btn btn-primary btn-large btn-block">
+          </div>
+        </div>
+      </div>
+    </form>
+  {% endif %}
+
+{% endblock %}

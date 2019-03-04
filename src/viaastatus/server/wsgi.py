@@ -1,4 +1,5 @@
-from flask import Flask, abort, Response, send_file
+from flask import Flask, abort, Response, send_file, request, flash, session, render_template
+from flask import url_for
 from time import time
 from viaastatus.prtg import api
 from os import environ
@@ -8,11 +9,14 @@ from configparser import ConfigParser
 import re
 import hmac
 from hashlib import sha256
-import base64
 from functools import wraps
+import argparse
+import itertools
 
-logging.basicConfig()
+log_level = logging._nameToLevel[environ.get('VERBOSITY', 'debug').upper()]
+logging.basicConfig(level=log_level)
 logger = logging.getLogger(__name__)
+logging.getLogger().setLevel(log_level)
 
 
 class Responses:
@@ -26,6 +30,8 @@ class Responses:
 
     @staticmethod
     def txt(obj):
+        if type(obj) is not str:
+            obj = '\n'.join(obj)
         return Response(obj, content_type='text/plain')
 
     @staticmethod
@@ -39,23 +45,6 @@ class Responses:
         if 'cache_timeout' not in kwargs:
             kwargs['cache_timeout'] = 10
         return send_file(file, **kwargs)
-
-
-def _checksum(*args, **kwargs):
-    """Calculates the checksum
-    """
-    params = str([args, kwargs])
-    return hmac.new(base64.b64decode(environ['SECRET']), params.encode('utf-8'), sha256).hexdigest()[:5]
-
-
-def normalize(txt):
-    txt = txt.replace(' ', '-').lower()
-    txt = re.sub('-{2,}', '-', txt)
-    txt = re.sub(r'\([^)]*\)', '', txt)
-    txt = re.sub(r'\[[^)]*\]', '', txt)
-    txt = re.sub('-[0-9]*$', '', txt)
-    txt = re.sub('-{2,}', '-', txt)
-    return txt
 
 
 def get_sensors(prtg) -> dict:
@@ -83,20 +72,14 @@ def get_sensors(prtg) -> dict:
     return sensors
 
 
-def checksummed(func):
-    """
-    Decorator to make calls checksummed.
-    """
-
-    @wraps(func)
-    def _(checksum, *args, **kwargs):
-        expected_checksum = _checksum(*args, **kwargs)
-        if checksum != expected_checksum:
-            logger.warning("Wrong checksum '%s' for %s, expected: '%s'", checksum, func.__name__, expected_checksum)
-            abort(500)
-        return func(*args, **kwargs)
-
-    return _
+def normalize(txt):
+    txt = txt.replace(' ', '-').lower()
+    txt = re.sub('-{2,}', '-', txt)
+    txt = re.sub(r'\([^)]*\)', '', txt)
+    txt = re.sub(r'\[[^)]*\]', '', txt)
+    txt = re.sub('-[0-9]*$', '', txt)
+    txt = re.sub('-{2,}', '-', txt)
+    return txt
 
 
 def create_app():
@@ -105,30 +88,129 @@ def create_app():
     config = ConfigParser()
     config.read(environ['CONFIG_FILE'])
 
+    app_config = config['app']
+    app.secret_key = app_config['secret_key']
+    salt = app_config['salt']
+
+    def _token(*args, **kwargs):
+        """Calculates the token
+        """
+        params = str([args, kwargs])
+        return hmac.new(salt.encode('utf-8'), params.encode('utf-8'), sha256).hexdigest()[2:10]
+
+    def secured_by_token(func):
+        """
+        Decorator to make calls secured_by_token.
+        """
+
+        @wraps(func)
+        def _(*args, **kwargs):
+            if 'authenticated' not in session:
+                token = request.args.get('token')
+                expected_token = _token(*args, **kwargs)
+                if token != expected_token:
+                    logger.warning("Wrong token '%s' for %s, expected: '%s'", token, func.__name__, expected_token)
+                    abort(401)
+            return func(*args, **kwargs)
+
+        _._secured_by_token = _token
+
+        return _
+
     prtg = api.API.from_credentials(**config['prtg'])
 
-    types = set(['json', 'png', 'txt', 'html'])
+    login_settings = None
+    if config.has_section('login'):
+        login_settings = dict(config['login'])
 
-    @app.route('/')
-    def _():
-        return 'IT WORKS!'
+    class Choices:
+        @staticmethod
+        def sensor():
+            return list(get_sensors(prtg).keys())
 
-    @app.route('/sensors.<checksum>.<type_>')
-    @checksummed
-    def sensors(type_):
-        return getattr(Responses, type_)(list(get_sensors(prtg).keys()))
+        @staticmethod
+        def type_():
+            return {'json', 'png', 'txt', 'html'}
 
-    @app.route('/status/<name>.<checksum>.<type_>')
-    @checksummed
-    def status_(name, type_):
-        if type_ not in types:
+        @staticmethod
+        def ttype():
+            return {'json', 'txt', 'html'}
+
+    @app.route('/', methods=['GET'])
+    def _home():
+        if not login_settings:
+            logger.info('Login requested but refused since no login data in config')
+            abort(404)
+        context = {}
+        #     "methods": [url_for(rule.endpoint, **(rule.defaults or {}))
+        #                 for rule in application.url_map.iter_rules()
+        #                 if 'GET' in rule.methods]
+        # }
+        rules = [rule
+                 for rule in application.url_map.iter_rules()
+                 if rule.is_leaf
+                 and rule.endpoint != 'static'
+                 and not rule.endpoint.startswith('_')]
+        methods = []
+        for i in range(len(rules)):
+            rule = rules[i]
+            rules[i] = rules[i].__dict__
+            args = {}
+
+            for argname in rule.arguments:
+                if not hasattr(Choices, argname):
+                    logger.warning('No possible values for %s', argname)
+                    continue
+                args[argname] = getattr(Choices, argname)()
+
+            for params in itertools.product(*args.values()):
+                params = dict(zip(args.keys(), params))
+                url = url_for(rule.endpoint, **params)
+                view_func = app.view_functions[rule.endpoint]
+                if hasattr(view_func, '_secured_by_token'):
+                    url += '?token=%s' % (view_func._secured_by_token(**params))
+                methods.append(url)
+
+        context['methods'] = methods
+        return render_template('login.html', **context)
+
+    @app.route('/', methods=['POST'])
+    def _do_login():
+        if not login_settings:
+            logger.info('Login requested but refused since no login data in config')
+            abort(404)
+        if request.form['password'] != login_settings['password'] or \
+           request.form['username'] != login_settings['username']:
+            flash('Invalid credentials!')
+        else:
+            session['authenticated'] = True
+        return _home()
+
+    @app.route('/sensors.<ttype>')
+    @secured_by_token
+    def sensors_(ttype):
+        if ttype not in Choices.ttype():
+            abort(404)
+
+        return getattr(Responses, ttype)(Choices.sensor())
+
+    @app.route('/status/<sensor>.<type_>', methods=['GET'])
+    @secured_by_token
+    def status_(sensor, type_):
+        """
+        :param str sensor: Name of the sensor
+        :param str type_: Response type
+        :return:
+        """
+
+        if type_ not in Choices.type_():
             abort(404)
 
         sensors = get_sensors(prtg)
-        if name not in sensors:
+        if sensor not in sensors:
             abort(404)
 
-        sensor_id = sensors[name]
+        sensor_id = sensors[sensor]
         status = prtg.getsensordetails(id=sensor_id)['sensordata']
 
         if type_ == 'png':
@@ -149,7 +231,7 @@ def create_app():
                 <dd><a href="https://do-mgm-mon-01.do.viaa.be/sensor.htm?id=%d">%s</a></dd>
             </dl>
             '''
-            status = status_msg % (name, sensor_id, status['statustext'])
+            status = status_msg % (sensor, sensor_id, status['statustext'])
 
         return getattr(Responses, type_)(status)
 
@@ -157,4 +239,16 @@ def create_app():
 
 
 application = create_app()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--debug', action='store_true',
+                        help='run in debug mode')
+    parser.add_argument('--host',
+                        help='hostname or ip to serve app')
+    parser.add_argument('--port', type=int, default=1111,
+                        help='port used by the server')
+
+    args = parser.parse_args()
+    application.run(host=args.host, port=args.port, debug=args.debug)
 
