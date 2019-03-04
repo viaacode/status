@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+{% block content %}
+  <section>
+    <h3>Available urls</h3>
+    <ul>
+      {% for method in methods %}
+      <li><a href="{{ method }}">{{ method }}</a></li>
+      {% endfor %}
+    </ul>
+  </section>
+{% endblock %}

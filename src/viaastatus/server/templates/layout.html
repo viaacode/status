@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+  <head>
+    {% block head %}
+    <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre-exp.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre-icons.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style type="text/css">
+    body {
+      font-family: Arial;
+      background-color: #3498DB;
+      padding: 10px;
+    }
+    main {
+      margin: 20px auto;
+      width: 90vw;
+    }
+    main > * {
+      background-color: #FFF;
+      padding: 20px;
+      border-radius: 5px
+    }
+    {% block style %}{% endblock %}
+    </style>
+    {% endblock %}
+    <title>{% block title %}{% endblock %}</title>
+  </head>
+  <body>
+    {% block body %}
+    <main>
+
+      {% with messages = get_flashed_messages() %}
+         {% if messages %}
+              {% for message in messages %}
+              <div class="toast">
+                <button class="btn btn-clear float-right"></button>
+                {{ message }}
+              </div>
+              {% endfor %}
+         {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/zepto/1.2.0/zepto.min.js"></script>
+    <script>
+    $(function() {
+      // make btn-clear work
+      $('body').on('click', 'button.btn-clear', function (ev) { ev.preventDefault(); $(this).parent().remove(); });
+
+      {% block script %}{% endblock %}
+    });
+    </script>
+    {% endblock %}
+  </body>
+</html>

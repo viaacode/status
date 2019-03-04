@@ -141,11 +141,11 @@ def create_app():
         if not login_settings:
             logger.info('Login requested but refused since no login data in config')
             abort(404)
+
+        if not session.get('authenticated'):
+            return render_template('login.html')
+
         context = {}
-        #     "methods": [url_for(rule.endpoint, **(rule.defaults or {}))
-        #                 for rule in application.url_map.iter_rules()
-        #                 if 'GET' in rule.methods]
-        # }
         rules = [rule
                  for rule in application.url_map.iter_rules()
                  if rule.is_leaf
@@ -172,13 +172,14 @@ def create_app():
                 methods.append(url)
 
         context['methods'] = methods
-        return render_template('login.html', **context)
+        return render_template('main.html', **context)
 
     @app.route('/', methods=['POST'])
     def _do_login():
         if not login_settings:
             logger.info('Login requested but refused since no login data in config')
             abort(404)
+
         if request.form['password'] != login_settings['password'] or \
            request.form['username'] != login_settings['username']:
             flash('Invalid credentials!')
