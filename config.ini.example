@@ -10,3 +10,10 @@ password=somepass
 [app]
 secret_key=SOMESECRETKEY
 salt=SOMESALT
+
+[aliases]
+/status/hetarchief.png=status_:hetarchief.be-http:png
+/status/archief.png=status_:archief.viaa.be-http:png
+/status/onderwijs.png=status_:onderwijs.hetarchief.be-http:png
+/status/registratie.png=status_:registratie.viaa.be-http-port:png
+/status/contract.png=status_:contract.viaa.be-http:png

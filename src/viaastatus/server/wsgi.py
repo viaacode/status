@@ -9,7 +9,7 @@ from configparser import ConfigParser
 import re
 import hmac
 from hashlib import sha256
-from functools import wraps
+from functools import wraps, partial
 import argparse
 import itertools
 from collections import OrderedDict
@@ -106,7 +106,12 @@ def create_app():
 
         @wraps(func)
         def _(*args, **kwargs):
-            if 'authenticated' not in session:
+            check_token = 'authenticated' not in session
+            if 'ignore_token' in kwargs:
+                check_token = not kwargs['ignore_token']
+                del kwargs['ignore_token']
+
+            if check_token:
                 token = request.args.get('token')
                 expected_token = _token(*args, **kwargs)
                 if token != expected_token:
@@ -156,7 +161,7 @@ def create_app():
         for i in range(len(rules)):
             rule = rules[i]
             rules[i] = rules[i].__dict__
-            kargs = [argname for argname in reversed(list(rule.arguments)) if hasattr(Choices, argname)]
+            kargs = [argname for argname in rule.arguments if hasattr(Choices, argname)]
             vargs = [getattr(Choices, argname)() for argname in kargs]
 
             methods = []
@@ -237,6 +242,17 @@ def create_app():
             status = status_msg % (sensor, sensor_id, status['statustext'])
 
         return getattr(Responses, type_)(status)
+
+    # add aliases
+    if config.has_section('aliases'):
+        for url, target in config['aliases'].items():
+            target = target.split(':')
+            name = target.pop(0)
+            func = app.view_functions[name]
+            kwargs = dict(ignore_token=True)
+            func = partial(func, *target, **kwargs)
+            func.__name__ = url
+            app.route(url)(func)
 
     return app
 
