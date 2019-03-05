@@ -17,3 +17,5 @@ salt=SOMESALT
 /status/onderwijs.png=status_:onderwijs.hetarchief.be-http:png
 /status/registratie.png=status_:registratie.viaa.be-http-port:png
 /status/contract.png=status_:contract.viaa.be-http:png
+/status/ftp.png=status_:ftp.viaa.be-ftp-login:png
+/status/cataloguspro.png=status_:cataloguspro.hetarchief.be-http-transaction:png

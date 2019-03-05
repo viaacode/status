@@ -51,7 +51,10 @@ def get_sensors(prtg) -> dict:
     sensors = {}
     cols = 'objid,name,device'
     ippattern = re.compile(r'[\d\.]+')
-    for sensor in prtg.table(content='sensors', filter_type='http', filter_active=-1, columns=cols)['sensors']:
+    for sensor in prtg.table(content='sensors',
+                             filter_type=['http', 'ftp', 'httptransaction'],
+                             filter_active=-1,
+                             columns=cols)['sensors']:
         parentname = sensor['device']
         sensor_name = sensor['name']
         if sensor_name.startswith('HTTP'):
