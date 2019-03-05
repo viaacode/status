@@ -1,5 +1,5 @@
 from flask import Flask, abort, Response, send_file, request, flash, session, render_template
-from flask import url_for
+from flask import url_for, redirect
 from time import time
 from viaastatus.prtg import api
 from os import environ
@@ -12,7 +12,6 @@ from hashlib import sha256
 from functools import wraps, partial
 import argparse
 import itertools
-from collections import OrderedDict
 
 log_level = logging._nameToLevel[environ.get('VERBOSITY', 'debug').upper()]
 logging.basicConfig(level=log_level)
@@ -99,9 +98,26 @@ def create_app():
         params = str([args, kwargs])
         return hmac.new(salt.encode('utf-8'), params.encode('utf-8'), sha256).hexdigest()[2:10]
 
+    def secured_by_login(func):
+        """
+        Decorator to define routes secured_by_login
+        """
+
+        @wraps(func)
+        def _(*args, **kwargs):
+            if not login_settings:
+                logger.info('Login requested but refused since no login data in config')
+                abort(404)
+
+            if not session.get('authenticated'):
+                return _login()
+
+            return func(*args, **kwargs)
+        return _
+
     def secured_by_token(func):
         """
-        Decorator to make calls secured_by_token.
+        Decorator to define routes secured_by_token.
         """
 
         @wraps(func)
@@ -142,15 +158,13 @@ def create_app():
         def ttype():
             return {'json', 'txt', 'html'}
 
-    @app.route('/', methods=['GET'])
-    def _home():
-        if not login_settings:
-            logger.info('Login requested but refused since no login data in config')
-            abort(404)
+    @app.route('/login', methods=['GET'])
+    def _login():
+        return render_template('login.html')
 
-        if not session.get('authenticated'):
-            return render_template('login.html')
-
+    @app.route('/urls', methods=['GET'])
+    @secured_by_login
+    def _urls():
         context = {}
         rules = [rule
                  for rule in application.url_map.iter_rules()
@@ -179,9 +193,9 @@ def create_app():
             method_types[rule.endpoint] = methods
 
         context['method_types'] = method_types
-        return render_template('main.html', **context)
+        return render_template('urls.html', **context)
 
-    @app.route('/', methods=['POST'])
+    @app.route('/login', methods=['POST'])
     def _do_login():
         if not login_settings:
             logger.info('Login requested but refused since no login data in config')
@@ -192,7 +206,11 @@ def create_app():
             flash('Invalid credentials!')
         else:
             session['authenticated'] = True
-        return _home()
+        return redirect('/urls')
+
+    @app.route('/', methods=['GET'])
+    def index_():
+        return render_template('oldstatus.html')
 
     @app.route('/sensors.<ttype>')
     @secured_by_token

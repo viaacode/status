@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
+<meta charset="utf-8">
+<title>VIAA Services Status</title>
+<meta name="author" content="Bart Debunne">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="">
+<style type="text/css">
+body{margin:0;}
+a:active,a:hover{outline:0;}
+code{font-family:monospace,monospace;font-size:1em;}
+.grd{padding-left:1rem;padding-right:1rem;}
+*,:after,:before{box-sizing:border-box;}
+.measure{max-width:48rem;margin:0 auto;}
+a{color:#3498db;}
+a:active,a:focus,a:hover{color:#217dbb;}
+.fnt--mid-gray{color:rgba(144,144,144,.99);}
+.my2{margin-top:2rem;margin-bottom:2rem;}
+.p0{padding:0;}
+.py1{padding-top:1rem;padding-bottom:1rem;}
+.py2{padding-top:2rem;padding-bottom:2rem;}
+body{font-family:HelveticaNeue-Light,"Helvetica Neue Light","Helvetica Neue",Helvetica,Arial,sans-serif;font-weight:400;line-height:1.85;color:#333;}
+.h2,h1{margin:1.414rem 0 .5rem;font-weight:inherit;line-height:1.42;}
+h1{margin-top:0;font-size:3.998rem;}
+.h2{font-size:2.827rem;}
+.btn--s{font-size:.707em;}
+code{font-family:Monaco,"Lucida Console",Courier,monospace;}
+.txt--center{text-align:center;}
+img{max-width:100%;}
+.btn{border-radius:3px;}
+.btn{padding:.5rem 1rem;border:2px solid #ccc;color:#333;text-decoration:none;text-align:center;}
+.btn:active,.btn:focus,.btn:hover{background-color:rgba(0,0,0,.05);color:#000;}
+.btn--s{padding:.5rem;}
+
+#loading{position:relative;margin:0;padding:0;top:60px;}
+#refresh:hover{background-color:#3498db;}
+#viaa:hover{background-color:#e74c3c;}
+body{padding-bottom:100px;}
+@media (max-width: 500px){
+#last{display:none;}
+h1{padding-top:20px;}
+#viaa-logo{position:absolute!important;top:0;right:0;}
+}
+</style>
+</head>
+<body>
+    <div style="position:absolute;top:2em;left:2em;">
+        <code><a href="https://viaa.be" class="btn btn--s" title="VIAA website" id="viaa">VIAA</a></code>
+    </div>
+    <div style="position:fixed;bottom:2em;right:2em;">
+        <a href="https://viaa.be" title="VIAA website" id="viaa-logo"><img src="data:image/png;base64,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" /></a>
+    </div>
+    <div class="measure py2">
+        <div class="txt--center">
+            <h1 class="h2">
+                Status VIAA Services
+            </h1>
+        </div>
+    </div>
+</body>
