@@ -1,10 +1,9 @@
 from flask import Flask, abort, Response, send_file, request, flash, session, render_template
 from flask import url_for, redirect
-from time import time
 from viaastatus.prtg import api
+from viaastatus.decorators import cacher, templated
 from os import environ
 import logging
-from flask import jsonify
 from configparser import ConfigParser
 import re
 import hmac
@@ -12,39 +11,14 @@ from hashlib import sha256
 from functools import wraps, partial
 import argparse
 import itertools
+from werkzeug.contrib.cache import SimpleCache
+from viaastatus.server.response import Responses, StatusResponse
+
 
 log_level = logging._nameToLevel[environ.get('VERBOSITY', 'debug').upper()]
 logging.basicConfig(level=log_level)
 logger = logging.getLogger(__name__)
 logging.getLogger().setLevel(log_level)
-
-
-class Responses:
-    @staticmethod
-    def json(obj):
-        return jsonify(obj)
-
-    @staticmethod
-    def html(obj):
-        return Response('<html><body>%s</body></html>' % (obj,), content_type='text/html')
-
-    @staticmethod
-    def txt(obj):
-        if type(obj) is not str:
-            obj = '\n'.join(obj)
-        return Response(obj, content_type='text/plain')
-
-    @staticmethod
-    def file(file, **kwargs):
-        if 'add_etags' not in kwargs:
-            kwargs['add_etags'] = False
-
-        if 'last_modified' not in kwargs:
-            kwargs['last_modified'] = time()
-
-        if 'cache_timeout' not in kwargs:
-            kwargs['cache_timeout'] = 10
-        return send_file(file, **kwargs)
 
 
 def get_sensors(prtg) -> dict:
@@ -88,6 +62,7 @@ def normalize(txt):
 def create_app():
     app = Flask(__name__)
 
+    cache = cacher(SimpleCache())(30)
     config = ConfigParser()
     config.read(environ['CONFIG_FILE'])
 
@@ -162,11 +137,13 @@ def create_app():
             return {'json', 'txt', 'html'}
 
     @app.route('/login', methods=['GET'])
+    @templated('login.html')
     def _login():
-        return render_template('login.html')
+        pass
 
     @app.route('/urls', methods=['GET'])
     @secured_by_login
+    @templated('urls.html')
     def _urls():
         context = {}
         rules = [rule
@@ -196,7 +173,7 @@ def create_app():
             method_types[rule.endpoint] = methods
 
         context['method_types'] = method_types
-        return render_template('urls.html', **context)
+        return context
 
     @app.route('/login', methods=['POST'])
     def _do_login():
@@ -212,10 +189,13 @@ def create_app():
         return redirect('/urls')
 
     @app.route('/', methods=['GET'])
+    @cache
+    @templated('oldstatus.html')
     def index_():
-        return render_template('oldstatus.html')
+        pass
 
     @app.route('/sensors.<ttype>')
+    @cache
     @secured_by_token
     def sensors_(ttype):
         if ttype not in Choices.ttype():
@@ -224,6 +204,7 @@ def create_app():
         return getattr(Responses, ttype)(Choices.sensor())
 
     @app.route('/status/<sensor>.<type_>', methods=['GET'])
+    @cache
     @secured_by_token
     def status_(sensor, type_):
         """
@@ -243,13 +224,13 @@ def create_app():
         status = prtg.getsensordetails(id=sensor_id)['sensordata']
 
         if type_ == 'png':
-            img = 'nok'
             if int(status['statusid']) in [3, 4]:
-                img = 'ok'
+                status = True
             elif int(status['statusid']) in [7, 8, 9, 10, 12]:
-                img = 'unk'
-            file = 'static/status-%s.png' % (img,)
-            return Responses.file(file)
+                status = None
+            else:
+                status = False
+            return Responses.status(status)
 
         if type_ == 'txt':
             status = status['statustext']
@@ -257,10 +238,10 @@ def create_app():
             status_msg = '''
             <dl>
                 <dt>%s</dt>
-                <dd><a href="https://do-mgm-mon-01.do.viaa.be/sensor.htm?id=%d">%s</a></dd>
+                <dd><a href="%s/sensor.htm?id=%d">%s</a></dd>
             </dl>
             '''
-            status = status_msg % (sensor, sensor_id, status['statustext'])
+            status = status_msg % (prtg._host, sensor, sensor_id, status['statustext'])
 
         return getattr(Responses, type_)(status)
 

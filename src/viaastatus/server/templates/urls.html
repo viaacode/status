@@ -8,7 +8,10 @@
   <section>
     <h3>Available urls</h3>
       {% for method_type, methods in method_types.items() %}
+        {% if not method_type.startswith('/'): %}
         <h4>{{ method_type.rstrip('_') }}</h4>
+        {% endif %}
+
         <ul class="urls">
         {% for method in methods %}
         <li>
@@ -20,7 +23,7 @@
           {% endfor %}
           <a href="{{ method.url }}">{{ method.url }}</a>
 
-          {% if method.params.type_=="png" %}
+          {% if method.params.type_=="png" or method_type.endswith('.png') %}
             <img src="{{ method.url }}" alt="{{ method.url }}">
           {% endif %}
         </li>
