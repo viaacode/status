@@ -5,7 +5,7 @@ from flask import request, render_template
 def cached(timeout=5 * 60, key='view/%s', cache=None):
     def decorator(f):
         @wraps(f)
-        def decorated_function(*args, **kwargs):
+        def decorated(*args, **kwargs):
             cache_key = key % request.path
             rv = cache.get(cache_key)
             if rv is not None:
@@ -13,7 +13,7 @@ def cached(timeout=5 * 60, key='view/%s', cache=None):
             rv = f(*args, **kwargs)
             cache.set(cache_key, rv, timeout=timeout)
             return rv
-        return decorated_function
+        return decorated
     return decorator
 
 
@@ -24,7 +24,7 @@ def cacher(cache):
 def templated(template=None):
     def decorator(f):
         @wraps(f)
-        def decorated_function(*args, **kwargs):
+        def decorated(*args, **kwargs):
             template_name = template
             if template_name is None:
                 template_name = request.endpoint \
@@ -35,5 +35,5 @@ def templated(template=None):
             elif not isinstance(ctx, dict):
                 return ctx
             return render_template(template_name, **ctx)
-        return decorated_function
+        return decorated
     return decorator

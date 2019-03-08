@@ -68,7 +68,7 @@ def create_app():
     app_config = config['app']
     cache_timeout = int(app_config.get('cache_timeout', 30))
     cache = workzeug_cache.SimpleCache() if cache_timeout > 0 else workzeug_cache.NullCache()
-    cache = cacher(cache)
+    cache = cacher(cache)()
     app.secret_key = app_config['secret_key']
     salt = app_config['salt']
 
