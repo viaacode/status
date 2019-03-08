@@ -11,7 +11,7 @@ from hashlib import sha256
 from functools import wraps, partial
 import argparse
 import itertools
-from werkzeug.contrib.cache import SimpleCache
+import werkzeug.contrib.cache as workzeug_cache
 from viaastatus.server.response import Responses, StatusResponse
 
 
@@ -62,11 +62,13 @@ def normalize(txt):
 def create_app():
     app = Flask(__name__)
 
-    cache = cacher(SimpleCache())(30)
     config = ConfigParser()
     config.read(environ['CONFIG_FILE'])
 
     app_config = config['app']
+    cache_timeout = int(app_config.get('cache_timeout', 30))
+    cache = workzeug_cache.SimpleCache() if cache_timeout > 0 else workzeug_cache.NullCache()
+    cache = cacher(cache)
     app.secret_key = app_config['secret_key']
     salt = app_config['salt']
 
