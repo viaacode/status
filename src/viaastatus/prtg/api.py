@@ -56,11 +56,20 @@ class ResponseTypes:
 
 class API:
     def __init__(self, host, username, passhash):
+        self._requests = requests
         self._host = host
         self._authparams = {
             "username": username,
             "passhash": passhash
         }
+
+    @property
+    def requests(self):
+        return self._requests
+
+    @requests.setter
+    def requests(self, val):
+        self._requests = val
 
     def _call(self, method, response_type=None, **params):
         if response_type is None:
@@ -70,7 +79,7 @@ class API:
         url = '%s%s/%s.%s' % (self._host, entrypoint, method, response_type)
         try:
             params = dict(params, **self._authparams)
-            response = requests.get(url, params)
+            response = self._requests.get(url, params=params)
             if response.status_code != 200:
                 logger.warning("Wrong exit code %d for %s", response.status_code, url)
                 raise PRTGError("Invalid HTTP code response", response.status_code)
@@ -82,15 +91,19 @@ class API:
         return functools.partial(self._call, item)
 
     @staticmethod
-    def from_credentials(host, username, password):
+    def from_credentials(host, username, password, _requests=None):
         url = '%s%s/getpasshash.htm' % (host, entrypoint)
-
         params = {
             "username": username,
             "password": password,
         }
+        if _requests is None:
+            _requests = requests.Session()
+
         response = requests.get(url, params=params)
         if response.status_code != 200:
             raise PRTGAuthenticationError("Couldn't authenticate", response.status_code, response.content)
-        return API(host, username, response.content)
+        result = API(host, username, response.content)
+        result.requests = _requests
+        return result
 
