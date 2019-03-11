@@ -223,7 +223,13 @@ def create_app():
             abort(404)
 
         sensor_id = sensors[sensor]
-        status = prtg.getsensordetails(id=sensor_id)['sensordata']
+
+        try:
+            status = prtg.getsensordetails(id=sensor_id)['sensordata']
+        except Exception as e:
+            if type_ == 'png':
+                return Responses.status(None)
+            raise e
 
         if type_ == 'png':
             if int(status['statusid']) in [3, 4]:
