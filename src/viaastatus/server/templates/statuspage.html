@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+{% block style %}
+.avatar {
+    background: none;
+}
+{% endblock %}
+{% block content %}
+  <section>
+  {% for img, name in aliases.items() %}
+    <a href="{{ img }}">
+      <div class="chip">
+        <img src="{{ img }}" class="avatar avatar-sm">
+        {{ name }}
+      </div>
+    </a>
+  {% endfor %}
+  </section>
+{% endblock %}

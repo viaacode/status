@@ -253,6 +253,16 @@ def create_app():
 
         return getattr(Responses, type_)(status)
 
+    @app.route('/status', methods=['GET'])
+    @templated('statuspage.html')
+    def status_page():
+        if not config.has_section('aliases'):
+            abort(404)
+
+        aliases = {url: fwd.split(':')[1] for url, fwd in config['aliases'].items()}
+        return dict(aliases=aliases)
+
+
     # add aliases
     if config.has_section('aliases'):
         for url, target in config['aliases'].items():
