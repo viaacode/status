@@ -12,7 +12,7 @@ from functools import wraps, partial
 import argparse
 import itertools
 import werkzeug.contrib.cache as workzeug_cache
-from viaastatus.server.response import Responses, StatusResponse
+from viaastatus.server.response import Responses
 import requests
 
 
@@ -20,34 +20,6 @@ log_level = logging._nameToLevel[environ.get('VERBOSITY', 'debug').upper()]
 logging.basicConfig(level=log_level)
 logger = logging.getLogger(__name__)
 logging.getLogger().setLevel(log_level)
-
-
-def get_sensors(prtg) -> dict:
-    sensors = {}
-    cols = 'objid,name,device'
-    ippattern = re.compile(r'[\d\.]+')
-    for sensor in prtg.table(content='sensors',
-                             filter_type=['http', 'ftp', 'httptransaction'],
-                             filter_active=-1,
-                             columns=cols)['sensors']:
-        parentname = sensor['device']
-        sensor_name = sensor['name']
-        if sensor_name.startswith('HTTP'):
-            # filter out IPs
-            if ippattern.fullmatch(parentname):
-                continue
-            sensor_name = parentname + ' - ' + sensor_name
-        sensor_name = normalize(sensor_name)
-
-        if sensor_name in sensors:
-            logger.warning("Sensor '%s' is conflicting (current id: %d, requested to set to: %d), ignored",
-                           sensor_name,
-                           sensors[sensor_name],
-                           sensor['objid'])
-            continue
-
-        sensors[sensor_name] = int(sensor['objid'])
-    return sensors
 
 
 def normalize(txt):
@@ -68,10 +40,43 @@ def create_app():
 
     app_config = config['app']
     cache_timeout = int(app_config.get('cache_timeout', 30))
-    cache = workzeug_cache.SimpleCache() if cache_timeout > 0 else workzeug_cache.NullCache()
-    cache = cacher(cache)()
+    if cache_timeout > 0:
+        cache_ = workzeug_cache.SimpleCache(default_timeout=cache_timeout)
+    else:
+        cache_ = workzeug_cache.NullCache()
+
+    cache = cacher(cache_)()
+    cache_other = cacher(cache_, timeout=cache_timeout, key='other/%s')()
     app.secret_key = app_config['secret_key']
     salt = app_config['salt']
+
+    @cache_other
+    def get_sensors(prtg_) -> dict:
+        sensors = {}
+        cols = 'objid,name,device'
+        ippattern = re.compile(r'[\d\.]+')
+        for sensor in prtg_.table(content='sensors',
+                                  filter_type=['http', 'ftp', 'httptransaction'],
+                                  filter_active=-1,
+                                  columns=cols)['sensors']:
+            parentname = sensor['device']
+            sensor_name = sensor['name']
+            if sensor_name.startswith('HTTP'):
+                # filter out IPs
+                if ippattern.fullmatch(parentname):
+                    continue
+                sensor_name = parentname + ' - ' + sensor_name
+            sensor_name = normalize(sensor_name)
+
+            if sensor_name in sensors:
+                logger.warning("Sensor '%s' is conflicting (current id: %d, requested to set to: %d), ignored",
+                               sensor_name,
+                               sensors[sensor_name],
+                               sensor['objid'])
+                continue
+
+            sensors[sensor_name] = int(sensor['objid'])
+        return sensors
 
     def _token(*args, **kwargs):
         """Calculates the token
@@ -224,17 +229,17 @@ def create_app():
         if type_ not in Choices.type_():
             abort(404)
 
-        sensors = get_sensors(prtg)
-        if sensor not in sensors:
-            abort(404)
-
-        sensor_id = sensors[sensor]
-
         try:
+            sensors = get_sensors(prtg)
+            if sensor not in sensors:
+                abort(404)
+
+            sensor_id = sensors[sensor]
             status = prtg.getsensordetails(id=sensor_id)['sensordata']
         except Exception as e:
             if type_ == 'png':
                 return Responses.status(None)
+
             raise e
 
         if type_ == 'png':

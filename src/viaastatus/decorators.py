@@ -2,7 +2,7 @@ from functools import wraps, partial
 from flask import request, render_template
 
 
-def cached(timeout=5 * 60, key='view/%s', cache=None):
+def cached(key='view/%s', cache=None, **extra_cache_kwargs):
     def decorator(f):
         @wraps(f)
         def decorated(*args, **kwargs):
@@ -11,14 +11,14 @@ def cached(timeout=5 * 60, key='view/%s', cache=None):
             if rv is not None:
                 return rv
             rv = f(*args, **kwargs)
-            cache.set(cache_key, rv, timeout=timeout)
+            cache.set(cache_key, rv, **extra_cache_kwargs)
             return rv
         return decorated
     return decorator
 
 
-def cacher(cache):
-    return partial(cached, cache=cache)
+def cacher(cache, **kwargs):
+    return partial(cached, cache=cache, **kwargs)
 
 
 def templated(template=None):
