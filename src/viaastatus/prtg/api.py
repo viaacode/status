@@ -100,7 +100,7 @@ class API:
         if _requests is None:
             _requests = requests.Session()
 
-        response = requests.get(url, params=params)
+        response = _requests.get(url, params=params)
         if response.status_code != 200:
             raise PRTGAuthenticationError("Couldn't authenticate", response.status_code, response.content)
         result = API(host, username, response.content)

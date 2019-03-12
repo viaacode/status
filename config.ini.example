@@ -2,6 +2,9 @@
 username=prtgadmin
 password=my_super_secret_password
 host=https://prtg.example.com
+# optionals:
+# private_key=monitoring.key
+# certificate=monitoring.crt
 
 [login]
 username=someusername

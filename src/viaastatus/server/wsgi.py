@@ -13,6 +13,7 @@ import argparse
 import itertools
 import werkzeug.contrib.cache as workzeug_cache
 from viaastatus.server.response import Responses, StatusResponse
+import requests
 
 
 log_level = logging._nameToLevel[environ.get('VERBOSITY', 'debug').upper()]
@@ -119,7 +120,12 @@ def create_app():
 
         return _
 
-    prtg = api.API.from_credentials(**config['prtg'])
+    prtg_conf = config['prtg']
+    _requests = requests.Session()
+    if 'certificate' in prtg_conf:
+        _requests.cert = (prtg_conf['certificate'], prtg_conf['private_key'])
+    prtg = api.API.from_credentials(prtg_conf['host'], prtg_conf['username'], prtg_conf['password'], _requests)
+
 
     login_settings = None
     if config.has_section('login'):
