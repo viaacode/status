@@ -5,8 +5,9 @@ Quick, simple service to return status of various platforms through calls to PRT
 
 #### Install
 ```bash
-git clone 
-pip install status
+git clone https://github.com/viaacode/status.git
+cd status
+pip install .
 ```
 
 #### Configure

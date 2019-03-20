@@ -1,15 +1,17 @@
 FROM python:3.7-alpine
 
-RUN adduser -D viaauser
-RUN apk --update add python py-pip openssl ca-certificates py-openssl wget linux-headers 
-RUN apk --update add --virtual build-dependencies libffi-dev openssl-dev python-dev py-pip build-base
-RUN pip install --upgrade pip
+
+RUN apk add --no-cache uwsgi-python3
+RUN pip install --no-cache-dir --upgrade pip
 
 WORKDIR /home/viaauser
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
 COPY . /home/viaauser/
 
-RUN pip install .
-
+RUN adduser -D viaauser
 RUN chown -R viaauser:viaauser ./
 USER viaauser
 
