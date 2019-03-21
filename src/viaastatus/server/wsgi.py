@@ -36,7 +36,7 @@ def create_app():
     app = Flask(__name__)
 
     config = ConfigParser()
-    config.read(environ['CONFIG_FILE'])
+    config.read(environ.get('CONFIG_FILE', 'config.ini'))
 
     app_config = config['app']
     cache_timeout = int(app_config.get('cache_timeout', 30))

@@ -23,7 +23,29 @@ vi /home/user/prtgconf.ini
 Start server using `uwsgi`
 
 ```bash
-CONFIG_FILE=/home/user/prtgconf.ini uwsgi --http :8080 --wsgi-file src/viaastatus/server/wsgi.py --processes 4 --threads 2
+CONFIG_FILE=/home/user/prtgconf.ini ./run.sh
 ```
 
 (will read from `/home/user/prtgconf.ini` and launch http server on port 8080)
+
+You can specify a different port, amount of threads and processes using environmental variables, eg.
+
+```bash
+PROCESSES=4 THREADS=8 PORT=80 ./run.sh
+```
+
+### Using docker
+
+#### Build
+
+```bash
+docker build -t status:latest .
+```
+
+#### Run
+
+```bash
+docker run -p 8080:8080 -it --name status --rm status:latest
+```
+
+The site will then be available at http://127.0.0.1:8080
