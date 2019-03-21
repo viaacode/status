@@ -3,6 +3,8 @@ from setuptools import setup, find_packages
 with open('README.md') as f:
     long_description = f.read()
 
+with open('requirements.txt') as f:
+    requirements = list(map(str.rstrip, f.readlines()))
 
 setup(
     name='viaastatus',
@@ -21,14 +23,13 @@ setup(
     package_dir={"": "src"},
     package_data={'viaastatus': ['server/static/*']},
     include_package_data=True,
-    install_requires=[
-        'Flask>=1.0.2',
-        'uWSGI>=2.0.18',
-        'requests>=2.18.4',
-    ],
+    install_requires=requirements,
     extras_require={
         'test': [
             "pytest>=4.2.0"
+        ],
+        'loadtest': [
+            "locustio>=0.11.0"
         ]
     },
     platforms='any'
