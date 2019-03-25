@@ -9,7 +9,7 @@ with open('requirements.txt') as f:
 setup(
     name='viaastatus',
     url='https://github.com/viaacode/status/',
-    version='0.0.1',
+    version='0.0.2',
     author='VIAA',
     author_email='support@viaa.be',
     descriptiona='Status services',
@@ -30,6 +30,15 @@ setup(
         ],
         'loadtest': [
             "locustio>=0.11.0"
+        ],
+        'gunicorn': [
+            'gunicorn>=19.9.0'
+        ],
+        'uwsgi': [
+            'uWSGI>=2.0.18'
+        ],
+        'waitress': [
+            'waitress>=1.2.1'
         ]
     },
     platforms='any'

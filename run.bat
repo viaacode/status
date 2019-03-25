@@ -1,0 +1,1 @@
+waitress-serve --port 80 --threads 4 viaastatus.server.wsgi:application
