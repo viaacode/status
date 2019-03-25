@@ -3,6 +3,7 @@ FROM python:3.7-alpine
 RUN apk --update add --virtual build-dependencies build-base linux-headers
 RUN apk --update add pcre-dev
 RUN pip install --no-cache-dir --upgrade pip
+RUN pip install --no-cache-dir uwsgi
 
 WORKDIR /home/viaauser
 COPY requirements.txt .
