@@ -9,7 +9,7 @@ with open('requirements.txt') as f:
 setup(
     name='viaastatus',
     url='https://github.com/viaacode/status/',
-    version='0.0.2',
+    version='0.0.3',
     author='VIAA',
     author_email='support@viaa.be',
     descriptiona='Status services',
