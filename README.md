@@ -79,7 +79,7 @@ There is also a `run.bat` file available for Windows that uses `waitress-serve` 
 
 ### Using docker
 
-The docker image uses `uWSGI` as WSGI HTTP server.
+The docker image uses `uWSGI` as WSGI HTTP server with `nginx` on top, and `supervisord` to (re)start the processes.
 
 #### Build
 
@@ -94,3 +94,12 @@ docker run -p 8080:8080 -it --name status --rm status:latest
 ```
 
 The site will then be available at http://127.0.0.1:8080
+
+#### SSL
+It automatically supports ssl if the directory `./certs/` is available in the project directory (in which case the docker will copy the ssl nginx configs). This directory then needs to contain the `ssl.crt` and `ssl.key` files.
+
+The SSL secured port is `8443`. It makes sense to map `8080` and `8443` to ports `80` and `443` respectively when running the docker container, and maybe :
+
+```
+docker run -p 80:8080 -p 443:8443 -it --name status --rm status:latest
+```
